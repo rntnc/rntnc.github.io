@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Маршрут 224: расписание и выходы на конечной</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #f0f4f8;
+            margin: 0;
+            padding: 20px 16px 40px;
+            color: #1e2a3e;
+        }
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* карточка текущего маршрута / живой информации */
+        .live-card {
+            background: linear-gradient(135deg, #0b2b44 0%, #123e5e 100%);
+            border-radius: 32px;
+            padding: 20px 22px;
+            color: white;
+            margin-bottom: 24px;
+            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+        }
+        .route-badge {
+            display: inline-block;
+            background: #ffb347;
+            background: linear-gradient(95deg, #ffaa33, #ff8c1a);
+            padding: 6px 14px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 16px;
+            color: #2c1c0a;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        .live-title {
+            font-size: 1.7rem;
+            font-weight: 700;
+            margin: 8px 0 4px;
+            letter-spacing: -0.3px;
+        }
+        .current-time-block {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(4px);
+            border-radius: 28px;
+            padding: 12px 18px;
+            margin: 14px 0 8px;
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            align-items: baseline;
+            gap: 10px;
+        }
+        .time-label {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .time-value {
+            font-size: 2rem;
+            font-weight: 800;
+            font-family: monospace;
+            letter-spacing: 2px;
+        }
+        .next-departures {
+            background: rgba(0,0,0,0.3);
+            border-radius: 24px;
+            padding: 12px 16px;
+            margin-top: 12px;
+        }
+        .next-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .departure-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .departure-chip {
+            background: white;
+            color: #0b2b44;
+            padding: 5px 14px;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* карточка рекомендации выхода на конечной */
+        .exit-card {
+            background: white;
+            border-radius: 28px;
+            padding: 20px 22px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            border: 1px solid #e2edf2;
+        }
+        .exit-header {
+            font-size: 1.35rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            color: #155f6b;
+        }
+        .exit-number {
+            background: #e6f4f5;
+            border-radius: 60px;
+            padding: 4px 14px;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #0f4c5c;
+            display: inline-block;
+        }
+        .exit-reason {
+            color: #2c4b5e;
+            margin: 8px 0 0;
+            line-height: 1.4;
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 20px;
+        }
+        .highlight {
+            font-weight: 800;
+            color: #d45a1a;
+        }
+
+        /* таблицы расписаний */
+        .schedule-section {
+            background: white;
+            border-radius: 28px;
+            padding: 16px 0 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            overflow-x: auto;
+        }
+        .schedule-title {
+            padding: 0 20px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 14px;
+            color: #1f5068;
+        }
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 500px;
+        }
+        .schedule-table th {
+            text-align: left;
+            padding: 12px 16px;
+            background: #eef3f7;
+            color: #1f3b4a;
+            font-weight: 600;
+            border-bottom: 1px solid #cfdfe6;
+        }
+        .schedule-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #e9edf2;
+            color: #1f2f3a;
+        }
+        .time-col {
+            font-family: monospace;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+        .stop-name {
+            font-weight: 500;
+        }
+        .note-text {
+            font-size: 0.7rem;
+            color: #6c7f8b;
+            margin-top: 8px;
+            padding: 0 20px 12px;
+        }
+        hr {
+            margin: 16px 0;
+            border: 0;
+            height: 1px;
+            background: #dce5ec;
+        }
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            color: #6f8f9f;
+            margin-top: 28px;
+        }
+        @media (max-width: 500px) {
+            body {
+                padding: 12px;
+            }
+            .time-value {
+                font-size: 1.5rem;
+            }
+            .departure-chip {
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Живая карточка: текущее время + ближайшие отправления от Всемирной академии бокса -->
+    <div class="live-card">
+        <div class="route-badge">🚌 маршрут 224</div>
+        <div class="live-title">Всемирная академия бокса → Дворец спорта</div>
+        <div class="current-time-block">
+            <div>
+                <div class="time-label">⏱️ текущее время</div>
+                <div class="time-value" id="currentTimeDisplay">--:--</div>
+            </div>
+            <div>
+                <div class="time-label">📅 дата</div>
+                <div class="time-value" id="currentDateDisplay" style="font-size:1rem; font-weight:500;">--</div>
+            </div>
+        </div>
+        <div class="next-departures">
+            <div class="next-title">🚦 Ближайшие отправления от «Всемирная академия бокса» (в прямом направлении)</div>
+            <div class="departure-list" id="nextDeparturesList">
+                <span style="opacity:0.8;">загрузка...</span>
+            </div>
+            <div style="font-size:0.7rem; margin-top: 10px; opacity:0.7;">* на основе расписания выходов 1,2,3</div>
+        </div>
+    </div>
+
+    <!-- Карточка рекомендации: какой выход на конечной (Дворец спорта) -->
+    <div class="exit-card" id="exitRecommendationCard">
+        <div class="exit-header">
+            🚪 Рекомендация выхода на конечной
+        </div>
+        <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+            <span class="exit-number" id="recommendedExitNumber">выход ?</span>
+            <span style="font-weight: 500;">(остановка «Дворец спорта»)</span>
+        </div>
+        <div class="exit-reason" id="exitReasonText">
+            Анализ прибытия и возвратов...
+        </div>
+        <div style="margin-top: 12px; font-size:0.75rem; background:#f0f6fa; padding: 8px 12px; border-radius: 18px;">
+            💡 Совет: сверьтесь с вашим рейсом — в зависимости от времени прибытия удобнее использовать разные выходы.
+        </div>
+    </div>
+
+    <!-- РАСПИСАНИЕ (на основе данных из файлов) прямые рейсы от Всемирной академии до Дворца спорта -->
+    <div class="schedule-section">
+        <div class="schedule-title">📅 Расписание прямых рейсов (туда) · от Академии бокса до Дворца спорта</div>
+        <table class="schedule-table">
+            <thead>
+                <tr><th>Отпр. Академия бокса</th><th>Талгарский тракт</th><th>ул. Хамиди</th><th>Халык Арена</th><th>Толе би</th><th>Дворец спорта (прибытие)</th></tr>
+            </thead>
+            <tbody id="forwardScheduleBody">
+                <!-- заполняется js -->
+            </tbody>
+        </table>
+        <div class="note-text">* Источник: выходы 1,2,3 (первые рейсы: 6:00, 6:24, 6:48 и далее)</div>
+    </div>
+
+    <!-- Расписание обратных рейсов (Дворец спорта → конечная Академия) для понимания возвратов -->
+    <div class="schedule-section">
+        <div class="schedule-title">🔄 Обратные рейсы · Дворец спорта → Всемирная академия бокса</div>
+        <table class="schedule-table">
+            <thead><tr><th>Отпр. Дворец спорта</th><th>Толе би</th><th>Мкр. Думан</th><th>ул. Хамиди</th><th>Абдыгулова</th><th>Академия бокса (прибытие)</th></tr></thead>
+            <tbody id="backwardScheduleBody"></tbody>
+        </table>
+        <div class="note-text">* Важно для выбора выхода: некоторые выходы (4,5,6) имеют время возврата/прибытия, влияющее на оптимальный выход.</div>
+    </div>
+
+    <!-- Дополнительная таблица: выходы 4-6 с явными временами на Дворце спорта (прибытие/отправление) -->
+    <div class="schedule-section">
+        <div class="schedule-title">🚏 Выходы 4,5,6: время прибытия на Дворец спорта (прямые рейсы)</div>
+        <table class="schedule-table">
+            <thead><tr><th>Выход</th><th>Отправление Академия</th><th>Прибытие Дворец спорта</th><th>Примечание</th></tr></thead>
+            <tbody id="additionalExitsBody"></tbody>
+        </table>
+        <div class="note-text">* Данные из скриншотов: выход 4 (7:12 → 9:00), выход 5 (7:36 → 9:22), выход 6 (8:00 → 9:46). Позволяет точнее рекомендовать выход.</div>
+    </div>
+
+    <footer>
+        ⓘ Маршрут 224, Алматы. Выход на конечной подобран по принципу «наиболее частого удобного выхода» и анализу возвратных рейсов.
+    </footer>
+</div>
+
+<script>
+    // ---------- РАСПИСАНИЕ (на основе IMG_6160 - выходы 1,2,3 прямое направление) ----------
+    // для прямого: Всемирная академия бокса -> ... -> Дворец спорта
+    // данные из скрина: выход 1: 6:00,10:19,14:28,18:43   прибытие на Дворец спорта 8:01,12:02,16:21,20:31
+    // выход 2: 6:24,10:50,14:57,19:11 -> прибытие 8:24,12:33,16:53,20:50
+    // выход 3: 6:48,11:15,15:24,19:39 -> прибытие 8:45,12:59,17:20,21:18
+    // также учтем промежуточные остановки по данным (Талгарский тракт/Абдыгулова, Хамиди, Халык Арена, Толе би)
+    // Усредним интервалы, но для таблицы покажем полные данные по каждому выходу 1,2,3.
+    const forwardData = [
+        { exit: 1, depart: "6:00", stop2: "6:45", stop3: "7:02", stop4: "7:25", stop5: "7:40", arrive: "8:01" },
+        { exit: 1, depart: "10:19", stop2: "11:03", stop3: "11:16", stop4: "11:28", stop5: "11:40", arrive: "12:02" },
+        { exit: 1, depart: "14:28", stop2: "15:16", stop3: "15:27", stop4: "15:38", stop5: "15:51", arrive: "16:21" },
+        { exit: 1, depart: "18:43", stop2: "19:33", stop3: "19:52", stop4: "20:03", stop5: "20:15", arrive: "20:31" },
+        { exit: 2, depart: "6:24", stop2: "7:09", stop3: "7:25", stop4: "7:48", stop5: "8:03", arrive: "8:24" },
+        { exit: 2, depart: "10:50", stop2: "11:34", stop3: "11:46", stop4: "11:58", stop5: "12:10", arrive: "12:33" },
+        { exit: 2, depart: "14:57", stop2: "15:42", stop3: "15:53", stop4: "16:04", stop5: "16:17", arrive: "16:53" },
+        { exit: 2, depart: "19:11", stop2: "19:52", stop3: "20:11", stop4: "20:22", stop5: "20:34", arrive: "20:50" },
+        { exit: 3, depart: "6:48", stop2: "7:33", stop3: "7:49", stop4: "8:12", stop5: "8:24", arrive: "8:45" },
+        { exit: 3, depart: "11:15", stop2: "11:59", stop3: "12:11", stop4: "12:22", stop5: "12:36", arrive: "12:59" },
+        { exit: 3, depart: "15:24", stop2: "16:09", stop3: "16:20", stop4: "16:31", stop5: "16:44", arrive: "17:20" },
+        { exit: 3, depart: "19:39", stop2: "20:20", stop3: "20:39", stop4: "20:50", stop5: "21:02", arrive: "21:18" }
+    ];
+
+    // Обратное расписание (Дворец спорта -> Академия) на основе выходов 1,2,3 из скрина 6160
+    const backwardData = [
+        { exit:1, depSport:"8:06", toleBi:"8:25", mikrDuman:"8:36", hamidi:"8:46", abdulg:"8:57", arriveAcad:"9:51" },
+        { exit:1, depSport:"12:06", toleBi:"12:27", mikrDuman:"12:39", hamidi:"12:49", abdulg:"13:01", arriveAcad:"13:55" },
+        { exit:1, depSport:"16:28", toleBi:"16:51", mikrDuman:"17:08", hamidi:"17:24", abdulg:"17:44", arriveAcad:"18:29" },
+        { exit:1, depSport:"20:43", toleBi:"21:00", mikrDuman:"21:17", hamidi:"21:27", abdulg:"21:38", arriveAcad:"22:18" },
+        { exit:2, depSport:"8:28", toleBi:"8:47", mikrDuman:"8:58", hamidi:"9:08", abdulg:"9:19", arriveAcad:"10:14" },
+        { exit:2, depSport:"12:38", toleBi:"12:59", mikrDuman:"13:11", hamidi:"13:21", abdulg:"13:33", arriveAcad:"14:27" },
+        { exit:2, depSport:"16:58", toleBi:"17:24", mikrDuman:"17:47", hamidi:"18:03", abdulg:"18:23", arriveAcad:"19:06" },
+        { exit:3, depSport:"8:49", toleBi:"9:08", mikrDuman:"9:19", hamidi:"9:29", abdulg:"9:40", arriveAcad:"10:35" },
+        { exit:3, depSport:"13:04", toleBi:"13:27", mikrDuman:"13:38", hamidi:"13:48", abdulg:"14:00", arriveAcad:"14:54" },
+        { exit:3, depSport:"17:25", toleBi:"17:51", mikrDuman:"18:14", hamidi:"18:31", abdulg:"18:51", arriveAcad:"19:34" }
+    ];
+
+    // Выходы 4,5,6 с конкретными временами на Дворце спорта (скрин 6161)
+    const additionalExits = [
+        { exit:4, departureAcad:"7:12", arriveSport:"9:00", note: "рейс утренний" },
+        { exit:5, departureAcad:"7:36", arriveSport:"9:22", note: "также есть возврат 9:48 Талгарский тракт" },
+        { exit:6, departureAcad:"8:00", arriveSport:"9:46", note: "многократное повторение, базовое прибытие" }
+    ];
+
+    // функция преобразования "чч:мм" в минуты
+    function timeToMinutes(timeStr) {
+        let parts = timeStr.split(':');
+        if(parts.length===2){
+            return parseInt(parts[0])*60 + parseInt(parts[1]);
+        }
+        return 0;
+    }
+
+    // текущее время (обновляем)
+    function updateCurrentTime() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2,'0');
+        const minutes = now.getMinutes().toString().padStart(2,'0');
+        const dateStr = now.toLocaleDateString('ru-RU', {day:'numeric', month:'long', weekday:'short'});
+        document.getElementById('currentTimeDisplay').innerText = `${hours}:${minutes}`;
+        document.getElementById('currentDateDisplay').innerHTML = dateStr;
+        return { hours, minutes, now };
+    }
+
+    // ближайшие отправления от Академии бокса (вперед)
+    function getNextDepartures(nowMinutes) {
+        let allDepartures = [];
+        forwardData.forEach(item => {
+            let depMin = timeToMinutes(item.depart);
+            if(depMin) allDepartures.push({ minutes: depMin, timeStr: item.depart, exit: item.exit });
+        });
+        // уникальные + сортировка
+        allDepartures.sort((a,b)=>a.minutes-b.minutes);
+        let next = [];
+        for(let dep of allDepartures) {
+            if(dep.minutes >= nowMinutes) {
+                next.push(dep);
+                if(next.length===4) break;
+            }
+        }
+        if(next.length===0 && allDepartures.length>0){
+            // показать первые завтрашние
+            for(let i=0;i<Math.min(3,allDepartures.length);i++) next.push(allDepartures[i]);
+        }
+        return next;
+    }
+
+    function renderNextDepartures() {
+        const now = new Date();
+        const nowMin = now.getHours()*60 + now.getMinutes();
+        const nextList = getNextDepartures(nowMin);
+        const container = document.getElementById('nextDeparturesList');
+        if(nextList.length){
+            container.innerHTML = nextList.map(d => `<span class="departure-chip">🚌 ${d.timeStr} (выход ${d.exit})</span>`).join('');
+        } else {
+            container.innerHTML = '<span class="departure-chip">нет данных</span>';
+        }
+    }
+
+    // рекомендация выхода на Дворце спорта на основе текущего времени и анализа прибытия/отправления обратных рейсов
+    // учитываем: если человек приезжает на конечную, лучше использовать выходы, которые соответствуют частому удобному выходу из массива
+    // Анализируем время прибытия из forwardData + additionalExits. Выделим наиболее часто встречающийся выход среди тех, что имеют прибытие в ближайший час
+    function getRecommendedExit() {
+        const now = new Date();
+        const nowMin = now.getHours()*60 + now.getMinutes();
+        // собираем все прибытия на Дворец спорта из forwardData (каждый рейс + выход)
+        let arrivals = [];
+        forwardData.forEach(f => {
+            let arriveMin = timeToMinutes(f.arrive);
+            if(arriveMin) arrivals.push({exit: f.exit, minutes: arriveMin, type: 'forward'});
+        });
+        additionalExits.forEach(e => {
+            let arriveMin = timeToMinutes(e.arriveSport);
+            if(arriveMin) arrivals.push({exit: e.exit, minutes: arriveMin, type: 'additional'});
+        });
+        // также обратные рейсы: отправления от Дворца спорта (если человек только прибыл, может уйти, но для выхода важнее "чей рейс чаще"
+        // Логика: если сейчас время близко к отправлениям обратных рейсов от Дворца спорта, то возможно выход тот же.
+        // Для простоты: вычислим, какой выход чаще всего прибывает в интервал +-2 часа от текущего момента, или ближайший прибывший.
+        let bestExit = null;
+        let bestScore = -1;
+        const exitsUnique = [1,2,3,4,5,6];
+        exitsUnique.forEach(exitNum => {
+            let arrivalsForExit = arrivals.filter(a => a.exit === exitNum);
+            let score = 0;
+            arrivalsForExit.forEach(arr => {
+                let diff = Math.abs(arr.minutes - nowMin);
+                if(diff <= 90) { // ближайшие полтора часа
+                    score += (90 - diff);
+                } else if(diff <= 180) {
+                    score += (180 - diff)*0.3;
+                }
+            });
+            // дополнительный бонус: если в обратных рейсах этот выход часто отправляется после прибытия (логистика выхода)
+            const backExits = backwardData.filter(b => b.exit === exitNum).length;
+            score += backExits * 2;
+            if(score > bestScore) {
+                bestScore = score;
+                bestExit = exitNum;
+            }
+        });
+        if(bestExit === null) bestExit = 3; // дефолт
+        return bestExit;
+    }
+
+    function updateExitRecommendation() {
+        const recExit = getRecommendedExit();
+        const exitSpan = document.getElementById('recommendedExitNumber');
+        exitSpan.innerText = `выход ${recExit}`;
+        const reasonDiv = document.getElementById('exitReasonText');
+        let reason = '';
+        if(recExit === 1 || recExit === 2 || recExit === 3) {
+            reason = `🎯 Выход ${recExit} чаще всего фигурирует в основном расписании (1,2,3). Он обеспечивает удобный выход после прибытия на Дворец спорта, особенно если вы едете утренними или дневными рейсами. Также этот выход активен в обратных маршрутах.`;
+        } else if(recExit === 4) {
+            reason = `🚪 Выход 4 прибывает на Дворец спорта в 9:00 (утренний рейс 7:12). Рекомендуется если ваше время прибытия близко к утреннему интервалу.`;
+        } else if(recExit === 5) {
+            reason = `🚪 Выход 5 прибывает в 9:22 и имеет дополнительные обороты. Подходит для тех, кто едет рейсом в 7:36 или позже.`;
+        } else if(recExit === 6) {
+            reason = `🚪 Выход 6 — частый выбор для рейса в 8:00 (прибытие 9:46). Если ваша поездка после 8 утра, этот выход оптимален.`;
+        } else {
+            reason = `Исходя из динамики расписания, выход ${recExit} даёт лучшую стыковку по времени прибытия и отправления обратных маршрутов.`;
+        }
+        reasonDiv.innerHTML = `⭐ ${reason} <br><span style="font-size:0.8rem;">🕒 Актуально на текущее время: ${document.getElementById('currentTimeDisplay').innerText}</span>`;
+    }
+
+    // заполнение таблиц
+    function fillForwardTable() {
+        const tbody = document.getElementById('forwardScheduleBody');
+        tbody.innerHTML = '';
+        forwardData.forEach(row => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="time-col">${row.depart}</td>
+                <td class="time-col">${row.stop2}</td>
+                <td class="time-col">${row.stop3}</td>
+                <td class="time-col">${row.stop4}</td>
+                <td class="time-col">${row.stop5}</td>
+                <td class="time-col"><strong>${row.arrive}</strong> (вых.${row.exit})</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function fillBackwardTable() {
+        const tbody = document.getElementById('backwardScheduleBody');
+        tbody.innerHTML = '';
+        backwardData.forEach(row => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="time-col">${row.depSport}</td>
+                <td class="time-col">${row.toleBi}</td>
+                <td class="time-col">${row.mikrDuman}</td>
+                <td class="time-col">${row.hamidi}</td>
+                <td class="time-col">${row.abdulg}</td>
+                <td class="time-col"><strong>${row.arriveAcad}</strong> (вых.${row.exit})</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function fillAdditionalExits() {
+        const tbody = document.getElementById('additionalExitsBody');
+        tbody.innerHTML = '';
+        additionalExits.forEach(ex => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>выход ${ex.exit}</strong></td>
+                <td>${ex.departureAcad}</td>
+                <td class="time-col"><span style="background:#fff0db;padding:2px 8px;border-radius:18px;">${ex.arriveSport}</span></td>
+                <td>${ex.note}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // основной таймер обновления
+    function refreshAll() {
+        updateCurrentTime();
+        renderNextDepartures();
+        updateExitRecommendation();
+    }
+
+    fillForwardTable();
+    fillBackwardTable();
+    fillAdditionalExits();
+    refreshAll();
+    setInterval(() => {
+        refreshAll();
+    }, 30000); // каждые 30 сек
+</script>
+</body>
+</html>
