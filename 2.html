@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Route 224 - Upcoming Buses</title>
+    <style>
+        :root {
+            --primary: #007bff;
+            --bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #333;
+            --text-muted: #666;
+            --border: #ddd;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .widget-container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+            padding: 24px;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: var(--primary);
+        }
+
+        .header p {
+            margin: 5px 0 0;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .clock {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+            background: #eef5ff;
+            padding: 10px;
+            border-radius: 8px;
+            color: #0056b3;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 15px;
+            background-color: #fff;
+            outline: none;
+        }
+        
+        select:focus {
+            border-color: var(--primary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .status-next {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .status-upcoming {
+            color: var(--text-main);
+        }
+
+        .no-buses {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="widget-container">
+        <div class="header">
+            <h1>Route 224</h1>
+            <p>Live Schedule & Upcoming Departures</p>
+        </div>
+
+        <div class="clock" id="live-clock">
+            Current Time: --:--:--
+        </div>
+
+        <div class="form-group">
+            <label for="direction-select">Direction:</label>
+            <select id="direction-select">
+                <option value="dir1">Всемирная академия бокса ➔ Дворец спорта</option>
+                <option value="dir2">Дворец спорта ➔ Всемирная академия бокса</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="stop-select">Select Stop:</label>
+            <select id="stop-select">
+                <!-- Options populated by JS -->
+            </select>
+        </div>
+
+        <table id="bus-table">
+            <thead>
+                <tr>
+                    <th>Departure Time</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody id="bus-table-body">
+                <!-- Table populated by JS -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        /**
+         * Route 224 Compiled Data
+         * Extracted and sorted from IMG_7213.jpg, IMG_7214.jpg, IMG_7215.jpg, IMG_7216.jpg
+         */
+        const scheduleData = {
+            dir1: {
+                name: "Всемирная академия бокса ➔ Дворец спорта",
+                stops: {
+                    "Всемирная академия бокса": [
+                        "06:00", "06:24", "06:48", "07:12", "07:36", "08:00", "08:24", "08:48", "09:12", "09:43",
+                        "10:19", "10:50", "11:15", "11:34", "11:53", "12:13", "12:36", "13:04", "13:32", "14:00",
+                        "14:28", "14:57", "15:24", "15:51", "16:13", "16:35", "16:57", "17:20", "17:45", "18:15",
+                        "18:43", "19:11", "19:39", "20:04", "20:30", "21:01"
+                    ],
+                    "Халык Арена": [
+                        "07:25", "07:48", "08:12", "08:27", "08:49", "09:13", "09:37", "10:01", "10:26", "10:56",
+                        "11:28", "11:58", "12:22", "12:41", "13:00", "13:20", "13:42", "14:14", "14:42", "15:10",
+                        "15:38", "16:04", "16:31", "16:58", "17:24", "17:47", "18:13", "18:43", "19:08", "19:35",
+                        "20:03", "20:22", "20:50", "21:05", "21:32", "22:09"
+                    ]
+                }
+            },
+            dir2: {
+                name: "Дворец спорта ➔ Всемирная академия бокса",
+                stops: {
+                    "Дворец спорта": [
+                        "06:05", "06:30", "06:55", "07:20", "07:44", "08:06", "08:28", "08:49", "09:10", "09:30",
+                        "09:50", "10:15", "10:40", "11:05", "11:35", "12:06", "12:38", "13:04", "13:25", "13:46",
+                        "14:10", "14:34", "14:58", "15:26", "15:58", "16:28", "16:58", "17:25", "17:51", "18:16",
+                        "18:38", "19:00", "19:22", "19:44", "20:11", "20:43"
+                    ]
+                }
+            }
+        };
+
+        const directionSelect = document.getElementById('direction-select');
+        const stopSelect = document.getElementById('stop-select');
+        const tableBody = document.getElementById('bus-table-body');
+        const liveClock = document.getElementById('live-clock');
+
+        // Helper: Format JS Date into HH:MM (24-hour)
+        function formatTimeHM(date) {
+            return date.getHours().toString().padStart(2, '0') + ':' + 
+                   date.getMinutes().toString().padStart(2, '0');
+        }
+
+        // Helper: Convert "HH:MM" string to minutes for easy comparison
+        function timeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // Live Clock Updates
+        function updateClock() {
+            const now = new Date();
+            liveClock.innerText = `Current Time: ${now.toLocaleTimeString()}`;
+            updateTable(); // Auto-refresh table periodically based on time
+        }
+        setInterval(updateClock, 1000); // Tick every second
+
+        // Populate the Stop dropdown based on selected Direction
+        function populateStops() {
+            const dir = directionSelect.value;
+            const stops = Object.keys(scheduleData[dir].stops);
+            
+            stopSelect.innerHTML = '';
+            stops.forEach(stop => {
+                const option = document.createElement('option');
+                option.value = stop;
+                option.textContent = stop;
+                stopSelect.appendChild(option);
+            });
+            updateTable();
+        }
+
+        // Main logic to find and display upcoming buses
+        function updateTable() {
+            const dir = directionSelect.value;
+            const stop = stopSelect.value;
+            const timetable = scheduleData[dir].stops[stop];
+            
+            if (!timetable) return;
+
+            const now = new Date();
+            const currentMins = timeToMinutes(formatTimeHM(now));
+
+            // Filter for buses that haven't left yet today
+            const upcomingBuses = timetable.filter(time => {
+                return timeToMinutes(time) >= currentMins;
+            });
+
+            tableBody.innerHTML = '';
+
+            if (upcomingBuses.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="2" class="no-buses">No more buses today for this stop.</td></tr>`;
+                return;
+            }
+
+            // Display the next 5 upcoming buses
+            const busesToShow = upcomingBuses.slice(0, 5);
+
+            busesToShow.forEach((time, index) => {
+                const tr = document.createElement('tr');
+                
+                const tdTime = document.createElement('td');
+                tdTime.textContent = time;
+                
+                const tdStatus = document.createElement('td');
+                
+                // Calculate how many minutes away it is
+                const minsAway = timeToMinutes(time) - currentMins;
+
+                if (index === 0) {
+                    tdStatus.className = 'status-next';
+                    tdStatus.textContent = minsAway === 0 ? 'Departing Now' : `Next (${minsAway} min)`;
+                } else {
+                    tdStatus.className = 'status-upcoming';
+                    tdStatus.textContent = `In ${minsAway} min`;
+                }
+
+                tr.appendChild(tdTime);
+                tr.appendChild(tdStatus);
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Event Listeners
+        directionSelect.addEventListener('change', populateStops);
+        stopSelect.addEventListener('change', updateTable);
+
+        // Initialization
+        populateStops();
+        updateClock();
+    </script>
+</body>
+</html>
