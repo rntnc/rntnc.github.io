@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upcoming Bus Schedule</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            padding: 40px 20px;
+            margin: 0;
+        }
+        .board-container {
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 700px;
+        }
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            margin: 0;
+            color: #2c3e50;
+        }
+        .live-indicator {
+            color: #e74c3c;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            animation: blink 2s infinite;
+        }
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.4; }
+            100% { opacity: 1; }
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        th {
+            background-color: #34495e;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+        .route-badge {
+            background-color: #3498db;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            display: inline-block;
+            min-width: 25px;
+            text-align: center;
+        }
+        .arriving-now {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        .soon {
+            color: #f39c12;
+            font-weight: bold;
+        }
+        .on-time {
+            color: #27ae60;
+        }
+    </style>
+</head>
+<body>
+
+<div class="board-container">
+    <div class="header-container">
+        <h2>Departures</h2>
+        <div class="live-indicator">
+            <span style="font-size: 10px;">🔴</span> LIVE
+        </div>
+    </div>
+    
+    <table id="busTable">
+        <thead>
+            <tr>
+                <th>Route</th>
+                <th>Destination</th>
+                <th>Scheduled</th>
+                <th>Expected In</th>
+            </tr>
+        </thead>
+        <tbody id="busTableBody">
+            <!-- JavaScript will populate the rows here -->
+        </tbody>
+    </table>
+</div>
+
+<script>
+    // Mock Data for the bus schedule
+    // 'expectedInMins' simulates real-time GPS tracking data
+    let busSchedule = [
+        { route: "12", destination: "Medeu", scheduledTime: "15:35", expectedInMins: 2 },
+        { route: "45", destination: "Dostyk Plaza", scheduledTime: "15:42", expectedInMins: 9 },
+        { route: "92", destination: "Airport", scheduledTime: "15:50", expectedInMins: 17 },
+        { route: "32", destination: "City Center", scheduledTime: "16:05", expectedInMins: 32 },
+        { route: "118", destination: "Railway Station", scheduledTime: "16:15", expectedInMins: 42 }
+    ];
+
+    // Function to render the table rows
+    function renderTable() {
+        const tableBody = document.getElementById("busTableBody");
+        tableBody.innerHTML = ""; // Clear existing rows
+
+        busSchedule.forEach(bus => {
+            const row = document.createElement("tr");
+
+            // Determine styling based on how close the bus is
+            let waitTimeHtml = "";
+            if (bus.expectedInMins <= 0) {
+                waitTimeHtml = `<span class="arriving-now">Due</span>`;
+            } else if (bus.expectedInMins <= 10) {
+                waitTimeHtml = `<span class="soon">${bus.expectedInMins} min</span>`;
+            } else {
+                waitTimeHtml = `<span class="on-time">${bus.expectedInMins} min</span>`;
+            }
+
+            row.innerHTML = `
+                <td><span class="route-badge">${bus.route}</span></td>
+                <td>${bus.destination}</td>
+                <td>${bus.scheduledTime}</td>
+                <td>${waitTimeHtml}</td>
+            `;
+
+            tableBody.appendChild(row);
+        });
+    }
+
+    // Initial render when the page loads
+    renderTable();
+
+    // Setup an interval to count down the minutes every 60 seconds (60,000 milliseconds)
+    setInterval(() => {
+        let needsUpdate = false;
+        
+        busSchedule.forEach(bus => {
+            if (bus.expectedInMins > -1) {
+                bus.expectedInMins -= 1; // Subtract 1 minute
+                needsUpdate = true;
+            }
+        });
+        
+        // Re-render the table with the new times
+        if (needsUpdate) {
+            renderTable();
+        }
+    }, 60000);
+</script>
+  
+
+</body>
+</html>
