@@ -1,0 +1,228 @@
+﻿CREATE DATABASE advanced_lab;
+
+CREATE TABLE employees (
+emp_id SERIAL PRIMARY KEY,
+first_name VARCHAR(50),
+last_name VARCHAR(50),
+department VARCHAR(50),
+salary INTEGER,
+hire_date DATE,
+status VARCHAR(20) DEFAULT 'Active'
+);
+
+CREATE TABLE departments (
+dept_id SERIAL PRIMARY KEY,
+dept_name VARCHAR(50),
+budget INTEGER,
+manager_id INTEGER
+);
+
+CREATE TABLE projects (
+project_id SERIAL PRIMARY KEY,
+project_name VARCHAR(100),
+dept_id INTEGER,
+start_date DATE,
+end_date DATE,
+budget INTEGER
+);
+
+INSERT INTO employees (emp_id, first_name, last_name, department)
+VALUES
+(1, 'John', 'Smith', 'IT'),
+(2, 'Emma', 'Brown', 'IT');
+
+SELECT setval(pg_get_serial_sequence('employees', 'emp_id'), (SELECT MAX(emp_id) FROM employees));
+
+INSERT INTO employees (first_name, last_name, department, salary, hire_date, status)
+VALUES ('Liam', 'Davis', 'HR', DEFAULT, '2021-06-01', DEFAULT);
+
+INSERT INTO departments (dept_name, budget, manager_id)
+VALUES
+('IT', 150000, 1),
+('Sales', 80000, 2),
+('Management', 200000, 3);
+
+INSERT INTO employees (first_name, last_name, department, salary, hire_date)
+VALUES ('Olivia', 'Wilson', 'IT', 50000 * 1.1, CURRENT_DATE);
+
+CREATE TEMP TABLE temp_employees (LIKE employees);
+
+INSERT INTO temp_employees
+SELECT * FROM employees WHERE department = 'IT';
+
+INSERT INTO employees (first_name, last_name, department, salary, hire_date, status)
+VALUES
+('Noah', 'Taylor', 'Sales', 90000, '2018-05-10', 'Active'),
+('Sophia', 'Moore', 'Sales', 65000, '2019-03-20', 'Active'),
+('James', 'Anderson', 'IT', 72000, '2017-08-15', 'Active'),
+('Mia', 'Harris', 'Sales', 55000, '2021-11-11', 'Terminated'),
+('Ethan', 'Clark', 'Finance', 45000, '2016-02-02', 'Inactive'),
+('Ava', 'Lewis', 'HR', 62000, '2015-09-09', 'Active');
+
+UPDATE employees
+SET salary = salary * 1.10;
+
+UPDATE employees
+SET status = 'Senior'
+WHERE salary > 60000 AND hire_date < '2020-01-01';
+
+UPDATE employees
+SET department = CASE
+WHEN salary > 80000 THEN 'Management'
+WHEN salary BETWEEN 50000 AND 80000 THEN 'Senior'
+ELSE 'Junior'
+END;
+
+UPDATE employees
+SET department = DEFAULT
+WHERE status = 'Inactive';
+
+UPDATE departments d
+SET budget = (
+SELECT ROUND(AVG(e.salary) * 1.2)
+FROM employees e
+WHERE e.department = d.dept_name
+)
+WHERE EXISTS (
+SELECT 1 FROM employees e WHERE e.department = d.dept_name
+);
+
+INSERT INTO employees (first_name, last_name, department, salary, hire_date)
+VALUES
+('Lucas', 'Young', 'Sales', 48000, '2022-01-15'),
+('Ella', 'King', 'Sales', 52000, '2022-07-01');
+
+UPDATE employees
+SET salary = salary * 1.15,
+status = 'Promoted'
+WHERE department = 'Sales';
+
+DELETE FROM employees
+WHERE status = 'Terminated';
+
+INSERT INTO employees (first_name, last_name, department, salary, hire_date)
+VALUES ('Jack', 'Hill', NULL, 35000, '2023-08-01');
+
+DELETE FROM employees
+WHERE salary < 40000
+AND hire_date > '2023-01-01'
+AND department IS NULL;
+
+DELETE FROM departments
+WHERE dept_name NOT IN (
+SELECT DISTINCT department
+FROM employees
+WHERE department IS NOT NULL
+);
+
+INSERT INTO projects (project_name, dept_id, start_date, end_date, budget)
+VALUES
+('Alpha', 1, '2022-01-01', '2022-12-31', 80000),
+('Beta', 1, '2023-03-01', '2023-11-30', 60000),
+('Gamma', 2, '2021-01-01', '2022-06-30', 30000),
+('Delta', 3, '2024-01-01', '2024-12-31', 120000);
+
+DELETE FROM projects
+WHERE end_date < '2023-01-01'
+RETURNING *;
+
+INSERT INTO employees (first_name, last_name, salary, department)
+VALUES ('Grace', 'Adams', NULL, NULL);
+
+UPDATE employees
+SET department = 'Unassigned'
+WHERE department IS NULL;
+
+DELETE FROM employees
+WHERE salary IS NULL OR department IS NULL;
+
+INSERT INTO employees (first_name, last_name, department, salary, hire_date)
+VALUES ('Henry', 'Scott', 'HR', 47000, '2022-04-04')
+RETURNING emp_id, first_name || ' ' || last_name AS full_name;
+
+INSERT INTO employees (first_name, last_name, department, salary, hire_date)
+VALUES
+('Owen', 'Reed', 'IT', 60000, '2021-05-05'),
+('Zoe', 'Bell', 'IT', 64000, '2022-02-02');
+
+UPDATE employees e
+SET salary = e.salary + 5000
+FROM (
+SELECT emp_id, salary AS old_salary
+FROM employees
+WHERE department = 'IT'
+) o
+WHERE e.emp_id = o.emp_id
+RETURNING e.emp_id, o.old_salary, e.salary AS new_salary;
+
+DELETE FROM employees
+WHERE hire_date < '2020-01-01'
+RETURNING *;
+
+INSERT INTO employees (first_name, last_name, department, salary, hire_date)
+SELECT 'Anna', 'Lee', 'HR', 45000, DATE '2022-03-15'
+WHERE NOT EXISTS (
+SELECT 1
+FROM employees
+WHERE first_name = 'Anna' AND last_name = 'Lee'
+);
+
+INSERT INTO departments (dept_name, budget, manager_id)
+VALUES ('IT', 150000, 1);
+
+UPDATE employees e
+SET salary = ROUND(
+CASE
+WHEN (SELECT d.budget FROM departments d WHERE d.dept_name = e.department LIMIT 1) > 100000
+THEN e.salary * 1.10
+ELSE e.salary * 1.05
+END
+)
+WHERE e.department IN (SELECT dept_name FROM departments);
+
+INSERT INTO employees (first_name, last_name, department, salary, hire_date)
+VALUES
+('Bulk', 'One', 'Operations', 40000, '2024-01-10'),
+('Bulk', 'Two', 'Operations', 42000, '2024-01-10'),
+('Bulk', 'Three', 'Operations', 44000, '2024-01-10'),
+('Bulk', 'Four', 'Operations', 46000, '2024-01-10'),
+('Bulk', 'Five', 'Operations', 48000, '2024-01-10');
+
+UPDATE employees
+SET salary = ROUND(salary * 1.10)
+WHERE department = 'Operations';
+
+INSERT INTO employees (first_name, last_name, department, salary, hire_date, status)
+VALUES
+('Ivy', 'Cole', 'Finance', 51000, '2021-03-03', 'Inactive'),
+('Leo', 'Fox', 'Finance', 53000, '2022-09-09', 'Inactive');
+
+CREATE TABLE employee_archive (LIKE employees INCLUDING DEFAULTS);
+
+INSERT INTO employee_archive
+SELECT * FROM employees WHERE status = 'Inactive';
+
+DELETE FROM employees
+WHERE status = 'Inactive';
+
+INSERT INTO employees (first_name, last_name, department, salary, hire_date)
+VALUES
+('Kai', 'Ross', 'IT', 61000, '2022-01-01'),
+('Nina', 'Ward', 'IT', 62000, '2022-02-01'),
+('Paul', 'Gray', 'IT', 63000, '2022-03-01'),
+('Rita', 'Stone', 'IT', 64000, '2022-04-01');
+
+INSERT INTO projects (project_name, dept_id, start_date, end_date, budget)
+VALUES
+('Epsilon', (SELECT dept_id FROM departments WHERE dept_name = 'IT' LIMIT 1), '2024-02-01', '2024-10-31', 90000),
+('Zeta', (SELECT dept_id FROM departments WHERE dept_name = 'IT' LIMIT 1), '2024-03-01', '2024-09-30', 20000);
+
+UPDATE projects p
+SET end_date = end_date + 30
+WHERE p.budget > 50000
+AND (
+SELECT COUNT(*)
+FROM employees e
+JOIN departments d ON d.dept_name = e.department
+WHERE d.dept_id = p.dept_id
+) > 3;
